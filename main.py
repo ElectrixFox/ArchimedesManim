@@ -1,6 +1,5 @@
-from operator import le
-from tkinter import font
 from manim import *
+from math import ceil
 
 class Intro(Scene):
     def construct(self):
@@ -28,19 +27,16 @@ class Intro(Scene):
 def CreateTexFrac(p, q):
     return Tex(f'$\\frac{{{p}}}{{{q}}}$')
 
+class FractionalNumber():
+    def __init__(self, p, q):
+        self.p = p
+        self.q = q
+        self.val = p / q
+        self.tex = CreateTexFrac(p, q)
+        self.str = self.tex.get_tex_string()
+
 class NumberLineScene(Scene):
     def construct(self):
-        p1, q1 = 29, 7
-        p2, q2 = 26, 3
-        a, b = p1 / q1, p2 / q2
-        at = Tex('$a =$ ' + CreateTexFrac(p1, q1).get_tex_string(), font_size=40)
-        bt = Tex('$b =$ ' + CreateTexFrac(p2, q2).get_tex_string(), font_size=40)
-        at.set_color(RED)
-        bt.set_color(BLUE)
-
-        vg = VGroup(at, bt).arrange(UP, buff=0.5)
-        vg.to_corner(UP + LEFT)
-
         l0 = NumberLine(
             x_range = [0, 10, 1],
             length = 10,
@@ -48,10 +44,20 @@ class NumberLineScene(Scene):
             include_numbers = True,
             label_direction = UP,
         )
-
         self.add(l0)
 
-        num1, dot1, num2, dot2 = self.select_two_points(a, b, l0)    # creates the points
+        a, b = FractionalNumber(29, 7), FractionalNumber(26, 3)
+        at = Tex('$a =$ ' + a.str, font_size=40)
+        bt = Tex('$b =$ ' + b.str, font_size=40)
+
+        at.set_color(RED)
+        bt.set_color(BLUE)
+
+        vg = VGroup(at, bt).arrange(UP, buff=0.5)
+        vg.to_corner(UP + LEFT)
+
+
+        num1, dot1, num2, dot2 = self.select_two_points(a.val, b.val, l0)    # creates the points
         self.wait(2)
         self.play(
             Write(at),
@@ -60,25 +66,21 @@ class NumberLineScene(Scene):
         self.play(FadeIn(dot1), Write(num1))
         self.play(FadeIn(dot2), Write(num2))
 
-        self.wait(2)
-        p1, q1 = 17, 5
-        p2, q2 = 17, 3
+        nnum, ndot = Tex('nb'), Dot(color=GREEN)
+        ndot.z_index = -1
+        n = ceil(a.val / b.val)
+        self.place_nb(n, b, l0, nnum, ndot)
+
+        self.wait(1)
 
         # change the values of a and b
-        at0 = Tex('$a =$ ' + CreateTexFrac(p1, q1).get_tex_string(), font_size=40)
-        bt0 = Tex('$b =$ ' + CreateTexFrac(p2, q2).get_tex_string(), font_size=40)
-        at0.set_color(RED)
-        bt0.set_color(BLUE)
-        at0.move_to(at)
-        bt0.move_to(bt)
-        self.play(Transform(at, at0), Transform(bt, bt0))
-
-        num1a, dot1a, num2a, dot2a = self.select_two_points(p1 / q1, p2 / q2, l0)    # creates the points
-        
-
-        self.play(Transform(num1, num1a), Transform(dot1, dot1a))
-        self.play(Transform(num2, num2a), Transform(dot2, dot2a))
-        self.wait(2)
+        # self.update_labels([dot1, dot2], [num1, num2], at, bt, FractionalNumber(17, 5), FractionalNumber(17, 3), l0)    # creates the points
+        # self.wait(1)
+        a, b = FractionalNumber(71, 11), FractionalNumber(7, 2)
+        self.update_labels([dot1, dot2], [num1, num2], at, bt, a, b, l0)    # creates the points
+        n = ceil(a.val / b.val) # updating to the new value of n
+        self.place_nb(n, b, l0, nnum, ndot)
+        self.wait(1)
     
     def select_two_points(self, a, b, nl):
         num1, num2 = Tex('a'), Tex('b')
@@ -92,8 +94,28 @@ class NumberLineScene(Scene):
         dot2.move_to(nl.n2p(b))
         return num1, dot1, num2, dot2
     
-    def update_labels(self, at, bt, a, b):
-        at.set_text('$a =$ ' + CreateTexFrac(a[0], a[1]).get_tex_string(), font_size=40)
-        bt.set_text('$b =$ ' + CreateTexFrac(b[0], b[1]).get_tex_string(), font_size=40)
-        at.set_color(RED)
-        bt.set_color(BLUE)
+    def update_labels(self, dts, nms, at, bt, a, b, nl):
+        at0 = Tex('$a =$ ' + a.str, font_size=40)
+        bt0 = Tex('$b =$ ' + b.str, font_size=40)
+
+        at0.set_color(RED)
+        bt0.set_color(BLUE)
+
+        at0.move_to(at)
+        bt0.move_to(bt)
+
+        self.play(Transform(at, at0), Transform(bt, bt0))
+
+        num1a, dot1a, num2a, dot2a = self.select_two_points(a.val, b.val, nl)    # creates the points
+
+        self.play(Transform(nms[0], num1a), Transform(dts[0], dot1a))
+        self.play(Transform(nms[1], num2a), Transform(dts[1], dot2a))
+    
+    def place_nb(self, n, b, nl, num0, dot0):
+        num = Tex('nb')
+        num.move_to(nl.n2p(n * b.val) + UP)
+        num.set_color(GREEN)
+        dot = Dot(color=GREEN)
+        dot.z_index = -1
+        dot.move_to(nl.n2p(n * b.val))
+        self.play(Transform(num0, num), Transform(dot0, dot))
